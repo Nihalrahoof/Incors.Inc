@@ -1,0 +1,132 @@
+from flask import Flask, request, redirect, render_template, url_for, session
+from flask_session import Session
+from flask_cors import CORS
+from flask_httpauth import HTTPBasicAuth
+from flask_mysqldb import MySQL
+import MySQLdb.cursors
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime;
+import re
+
+app = Flask(__name__)
+app.secret_key = "super secret key"
+CORS(app)   # So that the frontend and backend can make requests with necessary permissions
+
+
+# Setting Up DB
+
+app.config['MYSQL_HOST'] = 'Nihalrahoof.mysql.pythonanywhere-services.com'
+app.config['MYSQL_USER'] = 'Nihalrahoof'
+app.config['MYSQL_PASSWORD'] = 'Nikolas@123'
+app.config['MYSQL_DB'] = 'Nihalrahoof$default'
+mysql = MySQL(app)
+
+
+
+
+@app.route('/')
+def home():
+        return "hello World"
+
+
+    # http://localhost:5000/pythinlogin/register - this will be the registration page, we need to use both GET and POST requests
+@app.route('/foundit/register', methods=['GET', 'POST'])
+def register():
+    # Output message if something goes wrong...
+    data=request.get_json()
+
+    msg = ''
+    # Check if "username", "password" and "email" POST requests exist (user submitted form)
+
+        # Create variables for easy access
+    username = data['username']
+    password = data['password']
+    email = data['email']
+    cursor = mysql.connection.cursor()
+    cursor.execute('INSERT INTO accounts VALUES (NULL, %s, %s, %s)', (username, password, email,))
+    mysql.connection.commit()
+    msg = 'You have successfully registered!'
+    return "hello World"
+
+@app.route('/foundit/login', methods=['GET', 'POST'])
+def login():
+    data=request.get_json()
+
+    # Output message if something goes wrong...
+
+    # Check if "username" and "password" POST requests exist (user submitted form)
+
+    username = data['username']
+    password = data['password']
+    # Check if account exists using MySQL
+    cursor = mysql.connection.cursor()
+    cursor.execute('SELECT * FROM accounts WHERE username = %s AND password = %s', (username, password,))
+    # Fetch one record and return result
+    account = cursor.fetchone()
+    # If account exists in accounts table in out database
+    if account:
+            # Create session data, we can access this data in other routes
+            session['loggedin'] = True
+            session['password'] = account['password']
+            session['username'] = account['username']
+            # Redirect to home page
+            return 'Logged in successfully!'
+    else:
+            # Account doesnt exist or username/password incorrect
+            return 'successfull!'
+    # Show the login form with message (if any)
+
+
+
+
+
+
+    # http://localhost:5000/pythinlogin/register - this will be the registration page, we need to use both GET and POST requests
+@app.route('/foundit/returnobject', methods=['GET', 'POST'])
+def returnobject():
+    # Output message if something goes wrong...
+    data=request.get_json()
+
+    msg = ''
+    # Check if "username", "password" and "email" POST requests exist (user submitted form)
+
+        # Create variables for easy access
+    name = data['name']
+    phone = data['phone']
+    foundplace = data['foundplace']
+    item = data['item']
+    cursor = mysql.connection.cursor()
+    cursor.execute('INSERT INTO objectreturn VALUES (NULL, %s, %s, %s,%s)', (name, phone, foundplace,item))
+
+
+    mysql.connection.commit()
+    msg = 'You have successfully registered!'
+
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM objectreturn WHERE `item` = 'aadhar'")
+
+
+    myresult = cursor.fetchone()
+    list(myresult)
+
+    return{myresult[0]:myresult[2]}
+
+@app.route('/foundit/shownumber', methods=['GET', 'POST'])
+def shownumber():
+    data=request.get_json()
+    searchobject=data['searchobject']
+
+    cursor = mysql.connection.cursor()
+    cursor.execute(f"SELECT * FROM objectreturn WHERE `item` = '{searchobject}'")
+
+
+    myresult = cursor.fetchone()
+    list(myresult)
+
+    return(myresult[2])
+  
+
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0',port=3000)
+
